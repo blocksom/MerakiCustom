@@ -24,4 +24,4 @@ flask run --host=0.0.0.0
 
 Here are screenshots to show what the app looks like:
 
-!(https://github.com/blocksom/MerakiCustom/blob/master/AppShot.png)
+![alt text](https://github.com/blocksom/MerakiCustom/blob/master/AppShot.png)
