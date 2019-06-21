@@ -1,31 +1,25 @@
-# Meraki Device Provisioning Web App
-Web App to allow users to add Meraki Devices to Meraki Networks
+# Meraki Full-stack Deployment Application
+Create Networks, Add Devices, and Replace Devices through a customer Web App Interface
 
-INSTALL AND RUN INSTRUCTIONS
+Application Execution:
 
-1. Open the add_device_webapp.py file and change the 'apikey' and 'organizationid' variables to match your Meraki Organization
+1. Change the 'apikey' and 'organizationid' variables inside config.py to match your Meraki Organization
 
-2. Create a Python Virtual Environment and install the required dependencies
-```
-python3 -m pip install --upgrade pip
-python3 -m venv venv
-. venv/bin/activate
-pip3 install flask flask-wtf wtforms requests
-```
-
-3. Run the app
-```
-export FLASK_APP=add_device_webapp.py
-flask run --host=0.0.0.0
-```
-
-4. Open http://127.0.0.1:5000 in a web browser
-
+2. Execute ./Customer.sh to build Python dependencies, virtual environment, and run the app
 
 Here are screenshots to show what the app looks like:
 
+Application Home Page:
 ![alt text](https://github.com/blocksom/MerakiCustom/blob/appShots/AppShot.png)
+
+Create a Network:
 ![alt text](https://github.com/blocksom/MerakiCustom/blob/appShots/AppShot1.png)
+
+Add a Device:
 ![alt text](https://github.com/blocksom/MerakiCustom/blob/appShots/AppShot2.png)
+
+Replace a Device:
 ![alt text](https://github.com/blocksom/MerakiCustom/blob/appShots/AppShot3.png)
+
+Meraki Dashboard:
 ![alt text](https://github.com/blocksom/MerakiCustom/blob/appShots/AppShot4.png)
