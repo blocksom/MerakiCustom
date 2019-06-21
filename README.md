@@ -13,13 +13,13 @@ Application Home Page:
 ![alt text](https://github.com/blocksom/MerakiCustom/blob/appShots/AppShot.png)
 
 Create a Network:
-![alt text](https://github.com/blocksom/MerakiCustom/blob/appShots/AppShot1.png)
+![alt text](https://github.com/blocksom/MerakiCustom/blob/appShots/AppShot3.png)
 
 Add a Device:
-![alt text](https://github.com/blocksom/MerakiCustom/blob/appShots/AppShot2.png)
+![alt text](https://github.com/blocksom/MerakiCustom/blob/appShots/AppShot1.png)
 
 Replace a Device:
-![alt text](https://github.com/blocksom/MerakiCustom/blob/appShots/AppShot3.png)
+![alt text](https://github.com/blocksom/MerakiCustom/blob/appShots/AppShot2.png)
 
 Meraki Dashboard:
 ![alt text](https://github.com/blocksom/MerakiCustom/blob/appShots/AppShot4.png)
