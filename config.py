@@ -1,2 +1,0 @@
-apikey = 'CHANGEME'
-organizationid = 'CHANGEME'
