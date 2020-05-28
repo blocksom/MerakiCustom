@@ -1,6 +1,6 @@
 #
 # Author: Kyle T. Blocksom
-# Title: Taco Bell Client URL List
+# Title: Client URL List
 # Date: May 12, 2020
 #
 # Objective: Iterate through list of Meraki Organizations, followed by Networks, then by clients
@@ -149,7 +149,7 @@ def main():
             counter += 1
 
 
-# Script Driver to execute Taco Bell Client URL List project and calculate program runtime
+# Script Driver to execute Client URL List project and calculate program runtime
 if __name__ == '__main__':
     start_time = datetime.now()
     main()
