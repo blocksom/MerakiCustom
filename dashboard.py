@@ -16,7 +16,7 @@ from datetime import datetime
 
 ###########################################################################################################################################
 #
-#  throw_error() - Query all networks in org to grab static routes advertised into MX SDWAN by network 
+#  throw_error(exception, flag) - Print errors and their corresponding code, reason, and message to Terminal
 #
 ###########################################################################################################################################
 def throw_error(exception, flag):
@@ -30,7 +30,7 @@ def throw_error(exception, flag):
 
 ###########################################################################################################################################
 #
-# get_networkname_by_id(netID) - Query dashboard for a netID and return networkName.
+# get_networkname_by_id(my_key, network_ID, orgs) - Return Network Name given a Network ID
 #
 ###########################################################################################################################################
 def get_networkname_by_id(my_key, network_ID, orgs):
@@ -52,7 +52,7 @@ def get_networkname_by_id(my_key, network_ID, orgs):
 
 ###########################################################################################################################################
 #
-# get_networkid_by_name(networkName) - Query dashboard for networkName and return networkId
+# get_networkid_by_name(my_key, network_name, orgs) - Return Network ID given and Network Name
 #
 ###########################################################################################################################################
 def get_networkid_by_name(my_key, network_name, orgs):
@@ -78,7 +78,7 @@ def get_networkid_by_name(my_key, network_name, orgs):
 
 ###########################################################################################################################################
 #
-# get_network_routes(networkId) - pull all static routes advertised by MX in (networkId)
+# get_network_routes(dashboard, my_key, network_ID, orgs)) - Return all static routes for network in <Network ID>
 #
 ###########################################################################################################################################
 def get_network_routes(dashboard, my_key, network_ID, orgs):
@@ -94,7 +94,7 @@ def get_network_routes(dashboard, my_key, network_ID, orgs):
 
 ###########################################################################################################################################
 #
-#  get_global_routes() - Query all networks in org to grab static routes advertised into MX SDWAN by network 
+#  get_global_routes(dashboard, my_key, my_org, orgs)) - Return all static routes advertised by MX(s) in Org <my_org>
 #
 ###########################################################################################################################################
 def get_global_routes(dashboard, my_key, my_org, orgs):
@@ -108,7 +108,7 @@ def get_global_routes(dashboard, my_key, my_org, orgs):
 
 ###########################################################################################################################################
 #
-# iterate_clients() - Query all networks in org to grab static routes advertised into MX SDWAN by network 
+# write_csv(csv_writer, clients, data, network_dict, network_name, network_ID, tracker) - Write data returned by earlier method to .csv row-by-row
 #
 ###########################################################################################################################################
 def write_csv(csv_writer, clients, data, network_dict, network_name, network_ID, tracker):
@@ -125,7 +125,8 @@ def write_csv(csv_writer, clients, data, network_dict, network_name, network_ID,
 
 ###########################################################################################################################################
 #
-# iterate_clients() - Query all networks in org to grab static routes advertised into MX SDWAN by network 
+# iterate_clients(dashboard, network_name, network_ID, field_names, flag) - Create output .csv file,
+#  query list of Clients in network <network_ID>, iterate through Clients, and query "flag" data
 #
 ###########################################################################################################################################
 def iterate_clients(dashboard, network_name, network_ID, field_names, flag):
@@ -198,7 +199,7 @@ def iterate_clients(dashboard, network_name, network_ID, field_names, flag):
 
 ###########################################################################################################################################
 #
-#  get_top_talker(my_key, timespan) - Query all traffic analytics and write to CSV file.
+#  get_top_talker(dashboard, my_key, network_name, timespan) - Return .csv list of all clients, sorted by total number of DNS requests
 #  
 ###########################################################################################################################################
 def get_top_talker(dashboard, my_key, network_name, orgs, timeSpan=3600):
@@ -251,7 +252,7 @@ def get_top_talker(dashboard, my_key, network_name, orgs, timeSpan=3600):
 
 ###########################################################################################################################################
 #
-#  get_wireless_signal(networkName, my_key, timespan) - Query all traffic analytics records for networkName, dump to CSV file.
+#  get_wireless_signal(dashboard, my_key, network_name, orgs, timespan) - Return SNR and RSSI data for all Clients on network <network_name>
 #  
 ###########################################################################################################################################
 def get_wireless_signal(dashboard, my_key, network_name, orgs, timeSpan=3600):
@@ -274,7 +275,7 @@ def get_wireless_signal(dashboard, my_key, network_name, orgs, timeSpan=3600):
 
 ###########################################################################################################################################
 #
-# print_usage() - print out possible commands for CLI usage
+# print_usage() - Print out possible commands for CLI usage
 #
 ###########################################################################################################################################
 def print_usage():
