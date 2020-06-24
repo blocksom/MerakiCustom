@@ -1,9 +1,9 @@
 #
 # Author: Kyle T. Blocksom
 # Title: Dashboard
-# Date: June 16, 2020
+# Date: June 23, 2020
 #
-# Objective: Merakio Dashboard SDK
+# Objective: Meraki Dashboard SDK
 #
 # Notes: 
 #   - 'pip install meraki==1.0.0b9' to runtime environment
@@ -11,7 +11,7 @@
 # Usage:  dashboard.py <action> <var1>...<varN>
 #
 
-import meraki, random, sys, getopt, csv, config, os, asyncio
+import meraki, merakiapi, random, sys, getopt, csv, config, os, asyncio
 from datetime import datetime
 
 ###########################################################################################################################################
@@ -33,13 +33,13 @@ def throw_error(exception, flag):
 # get_networkname_by_id(my_key, network_ID, orgs) - Return Network Name given a Network ID
 #
 ###########################################################################################################################################
-def get_networkname_by_id(my_key, network_ID, orgs):
+def get_networkname_by_id(dashboard, my_key, network_ID, orgs):
 	
 	net_name = ''
 
 	# Get  current list of networks
 	for org in orgs:
-		current_networks = meraki.getnetworklist(my_key, org['id'], None, True)
+		current_networks = dashboard.organizations.getOrganizationNetworks(org['id'])
 
 		for net in current_networks:
 			if net['id'] == network_ID:
@@ -55,11 +55,11 @@ def get_networkname_by_id(my_key, network_ID, orgs):
 # get_networkid_by_name(my_key, network_name, orgs) - Return Network ID given and Network Name
 #
 ###########################################################################################################################################
-def get_networkid_by_name(my_key, network_name, orgs):
+def get_networkid_by_name(dashboard, my_key, network_name, orgs):
 
 	# Get current list of networks
 	for org in orgs:
-		current_networks = meraki.getnetworklist(my_key, org['id'], None, True)
+		current_networks = dashboard.organizations.getOrganizationNetworks(org['id'])
 
 		network_ID = '';
 
@@ -84,7 +84,7 @@ def get_networkid_by_name(my_key, network_name, orgs):
 def get_network_routes(dashboard, my_key, network_ID, orgs):
 
 	try:
-		network = get_networkname_by_id(my_key, network_ID, orgs)
+		network = get_networkname_by_id(dashboard, my_key, network_ID, orgs)
 		response = dashboard.appliance.getNetworkApplianceStaticRoutes(network_ID)
 		for route in response:
 			print ("{} - {}".format(network, route['subnet']))
@@ -101,7 +101,7 @@ def get_global_routes(dashboard, my_key, my_org, orgs):
 
 	for org in orgs:
 		if org['name'] == my_org:
-			networks = meraki.getnetworklist(my_key, org['id'], None, True)
+			networks = dashboard.organizations.getOrganizationNetworks(org['id'])
 		
 			for net in networks:
 				get_network_routes(dashboard, my_key, net['id'], orgs)
@@ -207,7 +207,7 @@ def get_top_talker(dashboard, my_key, network_name, orgs, timeSpan=3600):
 	# timeSpan = number of seconds
 	counter = 0
 	total = 0
-	network_ID = get_networkid_by_name(my_key, network_name, orgs)
+	network_ID = get_networkid_by_name(dashboard, my_key, network_name, orgs)
 
 	field_names = ['Network Name', 'Network ID', 'DNS Request Quantity', 'id', 'mac', 'description', 'ip',  'ip6', 'ip6Local', 'user', \
 	'firstSeen', 'lastSeen', 'manufacturer', 'os', 'recentDeviceSerial', 'recentDeviceName', 'recentDeviceMac', \
@@ -246,7 +246,6 @@ def get_top_talker(dashboard, my_key, network_name, orgs, timeSpan=3600):
 					iterate_clients(dashboard, network_name, network_ID, field_names, 'Talker')
 					counter += 1
 		else:
-			print('\nEntering Iterate\n')
 			iterate_clients(dashboard, network_name, network_ID, field_names, 'Talker')
 			break
 
@@ -257,13 +256,13 @@ def get_top_talker(dashboard, my_key, network_name, orgs, timeSpan=3600):
 ###########################################################################################################################################
 def get_wireless_signal(dashboard, my_key, network_name, orgs, timeSpan=3600):
 
-	network_ID = get_networkid_by_name(my_key, network_name, orgs)
+	network_ID = get_networkid_by_name(dashboard, my_key, network_name, orgs)
 
 	if network_ID == '':
 		print('Network for {network_name} not found!')
 		quit()
 
-	network_ID = get_networkid_by_name(my_key, network_name, orgs)
+	network_ID = get_networkid_by_name(dashboard, my_key, network_name, orgs)
 
 	field_names = ['Network Name', 'Network ID', 'id', 'mac', 'description', 'ip',  'ip6', 'ip6Local', 'user', 'startTs', 'endTs', \
 	'snr', 'rssi', 'firstSeen', 'lastSeen', 'manufacturer', 'os', 'recentDeviceSerial', 'recentDeviceName', 'recentDeviceMac', \
@@ -272,6 +271,67 @@ def get_wireless_signal(dashboard, my_key, network_name, orgs, timeSpan=3600):
 
 
 	iterate_clients(dashboard, network_name, network_ID, field_names, 'Signal')
+
+
+###########################################################################################################################################
+#
+#  bulk_deploy(dashboard, my_key, network_name, orgs, timespan) - Return SNR and RSSI data for all Clients on network <network_name>
+#  
+###########################################################################################################################################
+def bulk_deploy(dashboard, my_key, my_org, orgs):
+
+	# Confirm Org does not exist then create Org
+	for org in orgs:
+		if my_org != org['name']:
+
+			print(f'\nCreating = {my_org}\n')
+
+			new_org = dashboard.organizations.createOrganization(my_org)
+
+			# Read from .csv to Create Networks and Claim Devices
+			with open('Network_Device_List.csv', mode='r') as csv_file:
+				csv_reader = csv.DictReader(csv_file)
+
+				network_dict = {}
+				for row in csv_reader:
+					for column, value in row.items():
+						column = column.replace('\ufeff', '')
+						network_dict.setdefault(column, []).append(value)
+
+			#network = dashboard.organizations.createOrganizationNetwork(new_org['id'], value, productTypes=['wireless', 'switch', 'appliance'])
+			key_count = 0
+			
+			for network_name, serial in network_dict.items():
+
+				# if Network has not been created
+				if key_count and (network_dict[network_name] != previous_key):
+					network = dashboard.organizations.createOrganizationNetwork(new_org['id'], value, productTypes=['wireless', 'switch', 'appliance'])
+				else:
+					network_ID = get_networkid_by_name(dashboard, my_key, network_dict[network_name], orgs)
+					devices = []
+					#devices.append(network_dict[serial])
+					#dashboard.networks.claimNetworkDevices(network_ID, devices[key])
+
+				previous_key = network_dict[network_name]
+				key_count += 1
+
+			print(f'\nNetwork Dict = {network_dict}\n')
+
+			exit()
+
+		else:
+			print(f'\nDeleting = {my_org}\n')
+
+			networks = dashboard.organizations.getOrganizationNetworks(org['id'])
+
+			for net in networks:
+				dashboard.networks.deleteNetwork(net['id'])
+
+			dashboard.organizations.deleteOrganization(org['id'])
+			exit()
+
+	# createOrganizationActionBatch(new_org['id'], create)
+
 
 ###########################################################################################################################################
 #
@@ -284,7 +344,7 @@ def print_usage():
 	print ("\tpython3 dashboard.py --getsignal <Network Name> or -S <Network Name>          [Show SNR/RSSI data for clients on <network>]")
 	print ("\tpython3 dashboard.py --toptalker <Network Name> or -T <Network Name>          [Show top talker clients on <network> ]")
 	print ("\tpython3 dashboard.py --getroutes <Org Name> or -R <Org Name>                  [Show global route table for <org>]")
-
+	print ("\tpython3 dashboard.py --bulkDeploy <Org Name> or -B <Org Name>                 [Network creation and bulk device claim for <org>]")
 
 ###########################################################################################################################################
 #
@@ -321,7 +381,7 @@ def main():
 
 	# Grab and process the command line options
 	try:
-		options, remainder = getopt.getopt(sys.argv[1:], 'S:T:R:', ['getsignal','toptalker', 'getroutes'])
+		options, remainder = getopt.getopt(sys.argv[1:], 'B:S:T:R:', ['bulkDeploy', 'getsignal','toptalker', 'getroutes'])
 
 	except getopt.GetoptError as err:
 		# Print help information and exit:
@@ -351,13 +411,15 @@ def main():
 					my_network = arg
 					get_wireless_signal(dashboard, config.apikey, my_network, orgs)
 
+				elif opt in ('-B', '--bulkDeploy'):
+					my_org = arg
+					bulk_deploy(dashboard, config.apikey, my_org, orgs)
+
 				else:
 					print_usage()
 		else:
 			print('\nYou forgot to pass arguments!')
 			print_usage()
-
-	sys.exit(2)
 
 if __name__ == '__main__':
 	start_time = datetime.now()
