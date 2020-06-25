@@ -1,14 +1,14 @@
 #
 # Author: Kyle T. Blocksom
 # Title: Dashboard
-# Date: June 24, 2020
+# Date: June 25, 2020
 #
 # Objective: Meraki Dashboard SDK
 #
 # Notes: 
 #   - 'pip install meraki==1.0.0b9' to runtime environment
 #
-# Usage:  dashboard.py <action> <var1>...<varN>
+# Usage: python3 dashboard.py <action> <var1>...<varN>
 #
 
 import meraki, merakiapi, random, sys, getopt, csv, config, os, asyncio, time
@@ -57,15 +57,13 @@ def get_networkname_by_id(dashboard, my_key, network_ID, orgs):
 ###########################################################################################################################################
 def get_networkid_by_name(dashboard, my_key, network_name, orgs):
 
+	network_ID = '';
+
 	# Get current list of networks
 	for org in orgs:
 		current_networks = dashboard.organizations.getOrganizationNetworks(org['id'])
 
-		network_ID = '';
-
 		for net in current_networks:
-			net_temp = net['name']
-
 			if net['name'] == network_name:
 				network_ID = net['id']
 				break
@@ -108,7 +106,7 @@ def get_global_routes(dashboard, my_key, my_org, orgs):
 
 ###########################################################################################################################################
 #
-# network_exists(csv_writer, clients, data, network_dict, network_name, network_ID, tracker) - Write data returned by earlier method to .csv row-by-row
+# network_exists(dashboard, my_org) - Return Networks within <my_org>, empty list returned if no Networks exists
 #
 ###########################################################################################################################################
 def network_exists(dashboard, my_org):
@@ -129,7 +127,7 @@ def network_exists(dashboard, my_org):
 
 ###########################################################################################################################################
 #
-# write_csv(csv_writer, clients, data, network_dict, network_name, network_ID, tracker) - Write data returned by earlier method to .csv row-by-row
+# write_csv(csv_writer, clients, data, network_dict, network_name, network_ID, tracker) - Write data returned by earlier method to CSV row-by-row
 #
 ###########################################################################################################################################
 def write_csv(csv_writer, clients, data, network_dict, network_name, network_ID, tracker, flag):
@@ -206,12 +204,12 @@ def iterate_clients(dashboard, network_name, network_ID, field_names, flag):
 				try:
 					if flag == 'Talker':
 		                # Get traffic history for each Client across each Network
-						data = dashboard.networks.getNetworkClientTrafficHistory(networkId=network_ID, clientId=client['id'])
+						data = dashboard.networks.getNetworkClientTrafficHistory(networkId=network_ID, clientId=client['id']) # startingAfter= , endingBefore=
 						network_dict = {'Network Name':network_name, 'Network ID':network_ID, 'DNS Request Quantity':len(data)}
 					
 					elif flag == 'Signal':
 						network_dict = {'Network Name':network_name, 'Network ID':network_ID}
-						data = dashboard.wireless.getNetworkWirelessSignalQualityHistory(networkId=network_ID, clientId=client['id'])
+						data = dashboard.wireless.getNetworkWirelessSignalQualityHistory(networkId=network_ID, clientId=client['id'], timespan=86400, resolution=3600)
 
 				# Graceful failover
 				except meraki.APIError as e:
@@ -230,7 +228,28 @@ def iterate_clients(dashboard, network_name, network_ID, field_names, flag):
 
 ###########################################################################################################################################
 #
-#  get_top_talker(dashboard, my_key, network_name, timespan) - Return .csv list of all clients, sorted by total number of DNS requests
+#  get_top_talker(dashboard, my_key, network_name, orgs, timespan) - Return .csv list of all clients, sorted by total number of DNS requests
+#  takes org and template ID
+#  
+###########################################################################################################################################
+"""def get_top_talker_template(dashboard, my_key, network_name, orgs, timeSpan=3600):
+
+	orgs = get organizations
+
+	for org in orgs:
+		templates = get templates organizations
+
+		template_ID = template_nametoID_converter(template_name)
+
+		for template in templates:
+			if template_ID == template['id']:
+
+
+"""
+
+###########################################################################################################################################
+#
+#  get_top_talker(dashboard, my_key, network_name, orgs, timespan) - Return .csv list of all clients, sorted by total number of DNS requests
 #  
 ###########################################################################################################################################
 def get_top_talker(dashboard, my_key, network_name, orgs, timeSpan=3600):
@@ -293,10 +312,10 @@ def get_wireless_signal(dashboard, my_key, network_name, orgs, timeSpan=3600):
 
 	iterate_clients(dashboard, network_name, network_ID, field_names, 'Signal')
 
-
 ###########################################################################################################################################
 #
-#  bulk_deploy(dashboard, my_key, network_name, orgs, timespan) - Return SNR and RSSI data for all Clients on network <network_name>
+#  bulk_deploy(dashboard, my_key, my_org, orgs) - Create Organization <my_org> passed via CLI and bulk deploy 'Network_Device_List.csv' 
+#	Network Names and Serial Numbers
 #  
 ###########################################################################################################################################
 def bulk_deploy(dashboard, my_key, my_org, orgs):
@@ -306,6 +325,7 @@ def bulk_deploy(dashboard, my_key, my_org, orgs):
 		if my_org == org['name']:
 			print(f'\nDeleting = {my_org}\n')
 
+			devices = dashboard.organizations.getOrganizationDevices(org['id'])
 			old_networks = network_exists(dashboard, org['id'])
 
 			for net in old_networks:
@@ -315,7 +335,6 @@ def bulk_deploy(dashboard, my_key, my_org, orgs):
 
 			for template in templates:
 				template_id = template['id']
-				print(f'\nTemplate = {template_id}')
 				dashboard.organizations.deleteOrganizationConfigTemplate(org['id'], template['id'])
 
 			dashboard.organizations.deleteOrganization(org['id'])
@@ -348,39 +367,27 @@ def bulk_deploy(dashboard, my_key, my_org, orgs):
 				new_networks = network_exists(dashboard, new_org['id'])
 
 				if not new_networks:
-					print(f'\nHere - 1: Key = {key}, value = {value}')
-					dashboard.organizations.createOrganizationNetwork(new_org['id'], value, ['wireless','switch','appliance'])
-
-					network_ID = get_networkid_by_name(dashboard, my_key, value, orgs)
-					template = dashboard.organizations.createOrganizationConfigTemplate(new_org['id'], 'Test-Template')
-
-					template_ID = template['id']
-					print(f'\nnetwork_ID = {network_ID}, template_ID = {template_ID}')
-
-					dashboard.networks.bindNetwork(network_ID, template['id'])
+					network = dashboard.organizations.createOrganizationNetwork(new_org['id'], value, ['wireless','switch','appliance'])
 				else:
 					for net in new_networks:
 						if value == net['name']:
 							flag = 1
 
-					if flag == 0:
-						print(f'\nHere - 2: Key = {key}, value = {value}')			
-						dashboard.organizations.createOrganizationNetwork(new_org['id'], value, ['wireless','switch','appliance'])
+					if flag == 0:		
+						network = dashboard.organizations.createOrganizationNetwork(new_org['id'], value, ['wireless','switch','appliance'])
 
-						time.sleep(3)
+				ser = []
+				ser.append(network_dict['Serial Number'].pop(0))
 
-						network_ID = get_networkid_by_name(dashboard, my_key, value, orgs)
-						template = dashboard.organizations.createOrganizationConfigTemplate(new_org['id'], 'Test-Template')
-						dashboard.networks.bindNetwork(network_ID, template['id'])
+				if ser[0]:
+					dashboard.networks.claimNetworkDevices(network['id'], ser)
+					ser.pop(0)
 
-			else:
-				# Claim Devices by Serial Number
-				devices.append(value)
-				dashboard.networks.claimNetworkDevices(net['id'], devices)
-				devices.pop(0)
+	template = dashboard.organizations.createOrganizationConfigTemplate(new_org['id'], 'Test-Template')
 	
-	# createOrganizationActionBatch(new_org['id'], create)
-
+	for net in new_networks:
+		print('\nEntered template')
+		dashboard.networks.bindNetwork(net['id'], template['id'])
 
 ###########################################################################################################################################
 #
@@ -440,7 +447,6 @@ def main():
 
 	else:
 		if options:
-
 			for opt, arg in options:
 				if remainder:
 					arg = arg + ' ' + remainder[0]
